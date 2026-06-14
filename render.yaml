@@ -63,7 +63,7 @@ services:
       - key: JWT_SECRET
         sync: false           # paste a Base64 256-bit secret in the dashboard
       - key: RAZORPAY_ENABLED
-        value: "false"
+        value: "true"         # keys entered in the dashboard (RAZORPAY_KEY_ID / _SECRET below)
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
