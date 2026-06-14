@@ -101,7 +101,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*"));
+        // Origin *patterns* (not a literal "*") + allowCredentials lets Spring reflect the
+        // caller's origin and emit Access-Control-Allow-Credentials: true. The literal "*"
+        // is rejected by browsers for credentialed requests — which is what sockjs-client
+        // sends for the cross-origin WebSocket handshake, so live tracking needs this.
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowCredentials(true);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -21,8 +21,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Browser clients (SockJS fallback).
-        registry.addEndpoint("/ws").setAllowedOriginPatterns("*").withSockJS();
+        // Browser clients (SockJS fallback). setSessionCookieNeeded(false) is required
+        // for CROSS-ORIGIN deploys (static frontend + separate API host): otherwise
+        // sockjs-client sends its handshake with credentials, which the browser blocks
+        // against our `Access-Control-Allow-Origin: *` (no allow-credentials) → the
+        // SockJS connection fails even though raw WebSocket works.
+        registry.addEndpoint("/ws").setAllowedOriginPatterns("*")
+                .withSockJS().setSessionCookieNeeded(false);
         // Plain STOMP-over-WebSocket for native/mobile clients.
         registry.addEndpoint("/ws-native").setAllowedOriginPatterns("*");
     }
