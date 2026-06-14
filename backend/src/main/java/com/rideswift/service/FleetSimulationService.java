@@ -6,6 +6,8 @@ import com.rideswift.repository.DriverRepository;
 import com.rideswift.repository.FleetDriverView;
 import com.rideswift.repository.RideRepository;
 import com.rideswift.util.GeoUtils;
+import com.rideswift.websocket.DriverLocationMessage;
+import com.rideswift.websocket.RideTrackingHandler;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -40,6 +42,7 @@ public class FleetSimulationService {
     private final RideService rideService;
     private final LocationService locationService;
     private final DriverPresenceService presence;
+    private final RideTrackingHandler rideTracking;
     private final Random rnd = new Random();
 
     private final boolean enabled;
@@ -54,6 +57,7 @@ public class FleetSimulationService {
                                   RideService rideService,
                                   LocationService locationService,
                                   DriverPresenceService presence,
+                                  RideTrackingHandler rideTracking,
                                   @Value("${rideswift.fleet.enabled:true}") boolean enabled,
                                   @Value("${rideswift.fleet.step-meters:200}") double stepMeters,
                                   @Value("${rideswift.fleet.arrive-threshold-meters:120}") double arriveMeters,
@@ -65,6 +69,7 @@ public class FleetSimulationService {
         this.rideService = rideService;
         this.locationService = locationService;
         this.presence = presence;
+        this.rideTracking = rideTracking;
         this.enabled = enabled;
         this.stepMeters = stepMeters;
         this.arriveMeters = arriveMeters;
@@ -101,10 +106,10 @@ public class FleetSimulationService {
         double curLng = d.location().getX();
         switch (ride.getStatus()) {
             case REQUESTED -> safe(() -> rideService.accept(d.userId(), ride.getId()), "accept");
-            case MATCHED -> driveToTarget(d, curLat, curLng,
+            case MATCHED -> driveToTarget(d, ride, curLat, curLng,
                     ride.getPickupLocation().getY(), ride.getPickupLocation().getX(),
                     () -> safe(() -> rideService.start(d.userId(), ride.getId(), ride.getPickupPin()), "start"));
-            case IN_PROGRESS -> driveToTarget(d, curLat, curLng,
+            case IN_PROGRESS -> driveToTarget(d, ride, curLat, curLng,
                     ride.getDropoffLocation().getY(), ride.getDropoffLocation().getX(),
                     () -> safe(() -> rideService.complete(d.userId(), ride.getId()), "complete"));
             default -> { /* nothing to do */ }
@@ -112,18 +117,29 @@ public class FleetSimulationService {
     }
 
     /** Steps the driver toward (tLat,tLng); runs {@code onArrival} once within range. */
-    private void driveToTarget(FleetDriverView d, double curLat, double curLng,
+    private void driveToTarget(FleetDriverView d, Ride ride, double curLat, double curLng,
                                double tLat, double tLng, Runnable onArrival) {
         double distMeters = GeoUtils.haversineKm(curLat, curLng, tLat, tLng) * 1000;
         if (distMeters <= arriveMeters) {
-            locationService.updateLocation(d.driverId(), tLat, tLng);
+            moveAndBroadcast(d, ride, tLat, tLng);
             onArrival.run();
             return;
         }
         double frac = stepMeters / distMeters;
-        locationService.updateLocation(d.driverId(),
+        moveAndBroadcast(d, ride,
                 curLat + (tLat - curLat) * frac,
                 curLng + (tLng - curLng) * frac);
+    }
+
+    /**
+     * Persist the simulated driver's new position AND push it to the passenger's live
+     * map — mirrors what {@code DriverService.updateLocation} does for a real driver, so
+     * a fleet-driven ride animates on the rider's screen too.
+     */
+    private void moveAndBroadcast(FleetDriverView d, Ride ride, double lat, double lng) {
+        locationService.updateLocation(d.driverId(), lat, lng);
+        rideTracking.sendDriverLocation(ride.getId(),
+                new DriverLocationMessage(ride.getId(), d.driverId(), lat, lng, System.currentTimeMillis()));
     }
 
     private void wander(FleetDriverView d) {
