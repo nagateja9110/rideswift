@@ -78,8 +78,11 @@ services:
     staticPublishPath: dist
     pullRequestPreviewsEnabled: false
     envVars:
-      - key: VITE_API_ORIGIN     # bare host of the API; the app prepends https:// + /api/v1, /ws
-        fromService: { name: rideswift-api, type: web, property: host }
+      # Public origin of the API. fromService `host` only returns the internal
+      # service name, so set the real onrender.com URL explicitly. The app appends
+      # /api/v1 and /ws to this.
+      - key: VITE_API_ORIGIN
+        value: https://rideswift-api.onrender.com
     routes:
       - type: rewrite
         source: /*
