@@ -39,7 +39,7 @@ services:
       - key: SPRING_PROFILES_ACTIVE
         value: dev            # seeds the Coimbatore/Ettimadai demo fleet on first boot
       - key: FLEET_ENABLED
-        value: "false"        # no simulated drivers; a real driver must accept rides
+        value: "true"         # simulated drivers auto-accept & drive trips (demo completes on its own)
       - key: OSRM_ENABLED
         value: "true"
       - key: OSRM_URL          # public demo OSRM (no infra; rate-limited, falls back to straight-line if down)
