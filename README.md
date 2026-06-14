@@ -27,8 +27,9 @@ Password for all of them is `password123`.
 
 To see a full trip, open the passenger app in one window and the driver app in another, put the
 driver online, then book a ride. The request pops up on the driver side over WebSocket and the
-passenger watches the car move in real time. There's also a server-side fleet that auto-accepts,
-so a passenger booking will still complete on its own if nobody's logged in as a driver.
+passenger watches the car move in real time. (If you'd rather not run two windows, there's an
+optional fleet of simulated drivers you can switch on with `FLEET_ENABLED=true` — they accept
+and drive bookings automatically. It's off by default.)
 
 ## What's in it
 

@@ -39,7 +39,7 @@ services:
       - key: SPRING_PROFILES_ACTIVE
         value: dev            # seeds the Coimbatore/Ettimadai demo fleet on first boot
       - key: FLEET_ENABLED
-        value: "true"         # server-side drivers auto-accept & drive trips
+        value: "false"        # no simulated drivers; a real driver must accept rides
       - key: OSRM_ENABLED
         value: "false"        # straight-line routing on free tier
       - key: SERVER_PORT
