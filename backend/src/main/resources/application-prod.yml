@@ -1,0 +1,16 @@
+spring:
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
+
+# Seed the demo dataset (drivers, accounts, fleet) on first boot when requested —
+# needed for a working public demo. Set RIDESWIFT_SEED_ENABLED=true on the host.
+rideswift:
+  seed:
+    enabled: ${RIDESWIFT_SEED_ENABLED:false}
+
+logging:
+  level:
+    com.rideswift: INFO
+    root: WARN

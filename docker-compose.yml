@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: rideswift-postgres
+    environment:
+      POSTGRES_DB: rideswift
+      POSTGRES_USER: rideswift
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-rideswift}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - rideswift_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rideswift -d rideswift"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: rideswift-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Self-hosted OSRM routing. Run ./osrm/prepare.sh once to build osrm/data/coimbatore.osrm
+  # before bringing this up. If the data/container is absent the backend falls back
+  # to a straight-line estimate, so the rest of the stack still works without it.
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    container_name: rideswift-osrm
+    command: osrm-routed --algorithm mld /data/coimbatore.osrm
+    volumes:
+      - ./osrm/data:/data
+    ports:
+      # Host 5000 is taken by AirPlay Receiver on macOS, so default to 5050.
+      # (Backend→OSRM in-compose uses the container network http://osrm:5000.)
+      - "${OSRM_PORT:-5050}:5000"
+    healthcheck:
+      # Gandhipuram -> Coimbatore Junction (lng,lat) — a route inside the loaded box.
+      test: ["CMD-SHELL", "wget -qO- 'http://localhost:5000/route/v1/driving/76.9725,11.0183;76.9661,10.9989' | grep -q '\"code\":\"Ok\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  backend:
+    build: .
+    container_name: rideswift-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE:-dev}   # dev profile seeds demo data on first boot
+      DB_URL: jdbc:postgresql://postgres:5432/rideswift
+      DB_USERNAME: rideswift
+      DB_PASSWORD: ${DB_PASSWORD:-rideswift}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SERVER_PORT: 8080
+      # Points at the self-hosted OSRM container; falls back to straight-line if it's down.
+      OSRM_URL: ${OSRM_URL:-http://osrm:5000}
+      JWT_SECRET: ${JWT_SECRET:-Y2hhbmdlLW1lLXRoaXMtaXMtYS1kZXYtb25seS1zZWNyZXQta2V5LTEyMzQ1Ng==}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  frontend:
+    build: ./frontend
+    container_name: rideswift-frontend
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+
+volumes:
+  rideswift_pgdata:

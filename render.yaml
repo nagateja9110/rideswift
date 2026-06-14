@@ -1,0 +1,86 @@
+# Render Blueprint — deploys the whole RideSwift stack on free tiers.
+#
+#   • rideswift-db     Postgres + PostGIS (PostGIS auto-enabled by Flyway V1)
+#   • rideswift-redis  Key Value (Redis) for GEO matching / OTP / rate-limit
+#   • rideswift-api    Spring Boot API (Docker)
+#   • rideswift-web    React SPA (static site, always-on)
+#
+# OSRM routing is disabled here (free tier) — fares/ETA use a straight-line
+# estimate and the map draws a direct line; the app degrades gracefully.
+# Razorpay payments and Firebase phone-OTP are OFF by default so the first
+# deploy boots with zero secrets; enable them later by setting their keys
+# and flipping RAZORPAY_ENABLED / FIREBASE_ENABLED.
+
+databases:
+  - name: rideswift-db
+    plan: free
+    region: singapore
+    postgresMajorVersion: "16"
+
+services:
+  # ---- Redis (Render Key Value) ----
+  - type: keyvalue
+    name: rideswift-redis
+    plan: free
+    region: singapore
+    ipAllowList: []          # internal access only
+
+  # ---- Backend API (Spring Boot, Docker) ----
+  - type: web
+    name: rideswift-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: dev            # seeds the Coimbatore/Ettimadai demo fleet on first boot
+      - key: FLEET_ENABLED
+        value: "true"         # server-side drivers auto-accept & drive trips
+      - key: OSRM_ENABLED
+        value: "false"        # straight-line routing on free tier
+      - key: SERVER_PORT
+        value: "8080"
+      - key: JAVA_TOOL_OPTIONS
+        value: "-XX:MaxRAMPercentage=70.0"   # fit the 512 MB free instance
+      - key: DB_HOST
+        fromDatabase: { name: rideswift-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: rideswift-db, property: port }
+      - key: DB_NAME
+        fromDatabase: { name: rideswift-db, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: rideswift-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: rideswift-db, property: password }
+      - key: SPRING_DATA_REDIS_URL
+        fromService: { name: rideswift-redis, type: keyvalue, property: connectionString }
+      - key: JWT_SECRET
+        sync: false           # paste a Base64 256-bit secret in the dashboard
+      - key: RAZORPAY_ENABLED
+        value: "false"
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: FIREBASE_ENABLED
+        value: "false"
+
+  # ---- Frontend (React + Vite, static site) ----
+  - type: web
+    name: rideswift-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: VITE_API_ORIGIN     # bare host of the API; the app prepends https:// + /api/v1, /ws
+        fromService: { name: rideswift-api, type: web, property: host }
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

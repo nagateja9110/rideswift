@@ -1,0 +1,23 @@
+spring:
+  # Local dev defaults so `./mvnw spring-boot:run` works with no extra flags.
+  # (Postgres+PostGIS runs on host port 5433; env vars still override these.)
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/rideswift}
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+
+# Run on 8090 by default (host port 8080 is used by another container locally).
+server:
+  port: ${SERVER_PORT:8090}
+
+# Seed a self-contained demo dataset on startup (idempotent). Dev/demo only.
+rideswift:
+  seed:
+    enabled: true
+
+logging:
+  level:
+    com.rideswift: DEBUG
+    org.hibernate.SQL: DEBUG

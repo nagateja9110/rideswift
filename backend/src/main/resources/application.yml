@@ -1,0 +1,159 @@
+spring:
+  application:
+    name: rideswift
+  profiles:
+    active: dev
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:rideswift}}
+    username: ${DB_USERNAME:rideswift}
+    password: ${DB_PASSWORD:rideswift}
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # Auth + TLS for managed providers (Upstash, Redis Cloud, Render Key Value).
+      # Leave blank/false for local Redis.
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL:false}
+      timeout: ${REDIS_TIMEOUT:3s}
+      connect-timeout: ${REDIS_TIMEOUT:3s}
+      repositories:
+        enabled: false   # we use Redis as a cache/GEO store, not as a repository backend
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+        # Deterministic lowercase Envers naming so the hand-written Flyway
+        # audit tables (revinfo, *_aud) match what Hibernate validates against.
+        envers:
+          audit_table_suffix: _aud
+          revision_field_name: rev
+          revision_type_field_name: revtype
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  quartz:
+    job-store-type: memory
+
+server:
+  # Cloud hosts (Render, etc.) inject the port via PORT; fall back to SERVER_PORT
+  # then 8080 for local/Docker.
+  port: ${PORT:${SERVER_PORT:8080}}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    circuitbreakers:
+      enabled: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      paymentGateway:
+        sliding-window-size: 6
+        minimum-number-of-calls: 3
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 2
+        register-health-indicator: true
+  retry:
+    instances:
+      paymentGateway:
+        max-attempts: 3
+        wait-duration: 100ms
+  bulkhead:
+    instances:
+      paymentGateway:
+        max-concurrent-calls: 20
+
+rideswift:
+  security:
+    jwt:
+      # Base64-encoded 256-bit secret. OVERRIDE in production via env var.
+      secret: ${JWT_SECRET:Y2hhbmdlLW1lLXRoaXMtaXMtYS1kZXYtb25seS1zZWNyZXQta2V5LTEyMzQ1Ng==}
+      access-token-ttl-seconds: ${JWT_ACCESS_TTL:900}        # 15 minutes
+      refresh-token-ttl-seconds: ${JWT_REFRESH_TTL:604800}   # 7 days
+  matching:
+    search-radius-meters: ${MATCH_RADIUS_METERS:15000}      # nearest-driver search radius (covers Coimbatore↔Ettimadai ~14km)
+    candidate-limit: 5                                       # drivers fetched per match attempt
+  dispatch:
+    offer-timeout-seconds: ${DISPATCH_OFFER_TIMEOUT:35}     # server safety net per offer (client auto-declines ~30s)
+    max-dispatch-seconds: ${DISPATCH_MAX_SECONDS:120}       # give up & EXPIRE the ride after this
+    sweep-seconds: ${DISPATCH_SWEEP_SECONDS:5}              # how often the dispatch sweeper runs
+  fleet:
+    # Server-side simulated driver fleet (moves drivers, auto-accepts & drives trips)
+    # so the demo works without an open driver dashboard. Yields to real driver apps.
+    enabled: ${FLEET_ENABLED:true}
+    tick-seconds: ${FLEET_TICK_SECONDS:2}                   # simulation step interval
+    step-meters: ${FLEET_STEP_METERS:200}                  # distance a driver advances per tick
+    arrive-threshold-meters: ${FLEET_ARRIVE_METERS:120}    # "reached" pickup/drop-off radius
+    presence-ttl-seconds: ${FLEET_PRESENCE_TTL:12}         # how long a client push suppresses the sim
+    base-lat: ${FLEET_BASE_LAT:11.0168}                    # Coimbatore centre (idle wander anchor)
+    base-lng: ${FLEET_BASE_LNG:76.9558}
+    wander-radius-deg: ${FLEET_WANDER_DEG:0.12}            # idle drift bound (~13 km — spreads drivers toward Ettimadai)
+  location:
+    cache-ttl-seconds: 10                                    # Redis driver-location TTL
+  fare:
+    average-speed-kmph: 30                                   # used to estimate trip duration
+  maintenance:
+    interval-seconds: ${MAINTENANCE_INTERVAL:86400}          # Quartz maintenance-notification cadence
+  surge:
+    window-minutes: ${SURGE_WINDOW_MINUTES:15}               # demand look-back window
+    cache-ttl-seconds: ${SURGE_CACHE_TTL:60}                 # Redis surge-multiplier TTL
+  geocoding:
+    base-url: ${NOMINATIM_URL:https://nominatim.openstreetmap.org}
+    # Nominatim's usage policy requires a descriptive User-Agent identifying the app.
+    user-agent: ${NOMINATIM_USER_AGENT:RideSwift/1.0 (https://github.com/rideswift; demo)}
+    limit: ${GEOCODE_LIMIT:6}                                # default autocomplete results
+    cache-ttl-seconds: ${GEOCODE_CACHE_TTL:86400}            # Redis result cache (24h)
+    timeout-millis: ${GEOCODE_TIMEOUT_MS:4000}               # connect/read timeout to upstream
+  routing:
+    enabled: ${OSRM_ENABLED:true}
+    # Self-hosted OSRM container in prod; public demo server for local dev.
+    base-url: ${OSRM_URL:https://router.project-osrm.org}
+    profile: ${OSRM_PROFILE:driving}
+    cache-ttl-seconds: ${ROUTE_CACHE_TTL:3600}              # Redis route cache (1h)
+    timeout-millis: ${OSRM_TIMEOUT_MS:4000}                 # connect/read timeout to OSRM
+  otp:
+    # Custom dev OTP (fallback, no SMS gateway). expose-code returns the code in the
+    # API response so it works without SMS — set false in prod. Superseded by Firebase
+    # phone auth below when that's enabled.
+    length: ${OTP_LENGTH:6}
+    ttl-seconds: ${OTP_TTL:300}
+    expose-code: ${OTP_EXPOSE_CODE:true}
+  firebase:
+    # Real phone OTP via Firebase (Google sends the SMS + handles India DLT). The
+    # backend verifies the ID token against Google's public certs — no service-account
+    # key needed. project-id must match your Firebase web config.
+    enabled: ${FIREBASE_ENABLED:true}
+    project-id: ${FIREBASE_PROJECT_ID:rideswift-2d539}
+  payment:
+    razorpay:
+      # Real Razorpay payments. Use TEST keys (rzp_test_…) for the demo.
+      # Secret comes from env (.env / RAZORPAY_KEY_SECRET) — never commit it.
+      enabled: ${RAZORPAY_ENABLED:true}
+      key-id: ${RAZORPAY_KEY_ID:}
+      key-secret: ${RAZORPAY_KEY_SECRET:}
+
+logging:
+  level:
+    com.rideswift: INFO
