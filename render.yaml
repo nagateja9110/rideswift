@@ -41,7 +41,9 @@ services:
       - key: FLEET_ENABLED
         value: "false"        # no simulated drivers; a real driver must accept rides
       - key: OSRM_ENABLED
-        value: "false"        # straight-line routing on free tier
+        value: "true"
+      - key: OSRM_URL          # public demo OSRM (no infra; rate-limited, falls back to straight-line if down)
+        value: https://router.project-osrm.org
       - key: SERVER_PORT
         value: "8080"
       - key: JAVA_TOOL_OPTIONS
