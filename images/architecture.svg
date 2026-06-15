@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 880" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1240" height="880" fill="#0b1120"/>
+
+  <!-- Title -->
+  <text x="620" y="50" text-anchor="middle" fill="#e5e7eb" font-size="28" font-weight="700">RideSwift — System Architecture</text>
+  <text x="620" y="78" text-anchor="middle" fill="#64748b" font-size="14">React SPA · Spring Boot API · PostGIS · Redis · live WebSockets</text>
+
+  <!-- ===== Client ===== -->
+  <rect x="330" y="110" width="560" height="112" rx="14" fill="#0f1830" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="610" y="142" text-anchor="middle" fill="#22c55e" font-size="16" font-weight="700">Web Client — React 18 + TypeScript (Vite)</text>
+  <g font-size="14" fill="#cbd5e1" text-anchor="middle">
+    <rect x="372" y="162" width="146" height="40" rx="20" fill="#16243f" stroke="#2b3a5c"/><text x="445" y="187">Passenger</text>
+    <rect x="537" y="162" width="146" height="40" rx="20" fill="#16243f" stroke="#2b3a5c"/><text x="610" y="187">Driver</text>
+    <rect x="702" y="162" width="146" height="40" rx="20" fill="#16243f" stroke="#2b3a5c"/><text x="775" y="187">Admin</text>
+  </g>
+
+  <!-- Client -> API arrows -->
+  <line x1="540" y1="224" x2="540" y2="288" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="528" y="262" text-anchor="end" fill="#94a3b8" font-size="12">REST · /api/v1</text>
+  <line x1="700" y1="288" x2="700" y2="224" stroke="#64748b" stroke-width="1.5" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text x="712" y="262" fill="#94a3b8" font-size="12">WebSocket · /ws (STOMP)</text>
+
+  <!-- ===== API ===== -->
+  <rect x="130" y="290" width="760" height="300" rx="16" fill="#0f1830" stroke="#1f3a5f" stroke-width="1.5"/>
+  <text x="510" y="320" text-anchor="middle" fill="#e5e7eb" font-size="18" font-weight="700">Spring Boot API · Java 21 / Spring Boot 3.3</text>
+
+  <!-- row 1 -->
+  <g font-size="13" fill="#cbd5e1" text-anchor="middle">
+    <rect x="150" y="338" width="226" height="48" rx="10" fill="#13213c" stroke="#2b3a5c"/><text x="263" y="367">REST controllers</text>
+    <rect x="397" y="338" width="226" height="48" rx="10" fill="#13213c" stroke="#2b3a5c"/><text x="510" y="367">STOMP WebSocket broker</text>
+    <rect x="644" y="338" width="226" height="48" rx="10" fill="#13213c" stroke="#2b3a5c"/><text x="757" y="367">Security · JWT + OTP</text>
+  </g>
+
+  <!-- row 2 services -->
+  <text x="150" y="414" fill="#64748b" font-size="12">Services</text>
+  <g font-size="13" fill="#dbeafe" text-anchor="middle">
+    <rect x="150" y="420" width="168" height="46" rx="10" fill="#14271f" stroke="#1f7a44"/><text x="234" y="448">Matching</text>
+    <rect x="334" y="420" width="168" height="46" rx="10" fill="#14271f" stroke="#1f7a44"/><text x="418" y="448">Fare + Surge</text>
+    <rect x="518" y="420" width="168" height="46" rx="10" fill="#14271f" stroke="#1f7a44"/><text x="602" y="448">Dispatch</text>
+    <rect x="702" y="420" width="168" height="46" rx="10" fill="#14271f" stroke="#1f7a44"/><text x="786" y="448">Payments</text>
+  </g>
+
+  <!-- row 3 jobs -->
+  <rect x="150" y="494" width="720" height="74" rx="10" fill="#13213c" stroke="#2b3a5c"/>
+  <text x="510" y="524" text-anchor="middle" fill="#e5e7eb" font-size="14" font-weight="600">Scheduled jobs (Quartz)</text>
+  <text x="510" y="548" text-anchor="middle" fill="#94a3b8" font-size="12.5">Dispatch sweep · Fleet simulation (auto-accept &amp; drive) · Maintenance</text>
+
+  <!-- API -> data arrows -->
+  <line x1="300" y1="592" x2="300" y2="640" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="312" y="620" fill="#94a3b8" font-size="11.5">JPA / Flyway</text>
+  <line x1="700" y1="592" x2="700" y2="640" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="712" y="620" fill="#94a3b8" font-size="11.5">geo / cache</text>
+
+  <!-- ===== Data stores ===== -->
+  <rect x="130" y="640" width="380" height="120" rx="14" fill="#0f1830" stroke="#2b3a5c" stroke-width="1.5"/>
+  <text x="320" y="680" text-anchor="middle" fill="#38bdf8" font-size="16" font-weight="700">PostgreSQL 16 + PostGIS</text>
+  <text x="320" y="706" text-anchor="middle" fill="#94a3b8" font-size="12">rides · drivers · users · payments</text>
+  <text x="320" y="726" text-anchor="middle" fill="#94a3b8" font-size="12">audit trail · surge zones · spatial queries</text>
+
+  <rect x="540" y="640" width="350" height="120" rx="14" fill="#0f1830" stroke="#2b3a5c" stroke-width="1.5"/>
+  <text x="715" y="680" text-anchor="middle" fill="#f87171" font-size="16" font-weight="700">Redis</text>
+  <text x="715" y="706" text-anchor="middle" fill="#94a3b8" font-size="12">driver geo-index · OTP cache</text>
+  <text x="715" y="726" text-anchor="middle" fill="#94a3b8" font-size="12">rate limiting · driver presence</text>
+
+  <!-- ===== External services ===== -->
+  <text x="1078" y="318" text-anchor="middle" fill="#64748b" font-size="13">External services (HTTP)</text>
+  <g font-size="14" text-anchor="middle">
+    <rect x="950" y="332" width="258" height="62" rx="12" fill="#1a1530" stroke="#7c5cff"/>
+    <text x="1079" y="360" fill="#c4b5fd" font-weight="700">OSRM</text><text x="1079" y="380" fill="#94a3b8" font-size="12">road routing &amp; ETA</text>
+    <rect x="950" y="404" width="258" height="62" rx="12" fill="#1a1530" stroke="#7c5cff"/>
+    <text x="1079" y="432" fill="#c4b5fd" font-weight="700">Nominatim (OSM)</text><text x="1079" y="452" fill="#94a3b8" font-size="12">address search / geocoding</text>
+    <rect x="950" y="476" width="258" height="62" rx="12" fill="#10221c" stroke="#16a34a"/>
+    <text x="1079" y="504" fill="#86efac" font-weight="700">Razorpay</text><text x="1079" y="524" fill="#94a3b8" font-size="12">payments (test mode)</text>
+    <rect x="950" y="548" width="258" height="62" rx="12" fill="#2a1f10" stroke="#f59e0b"/>
+    <text x="1079" y="576" fill="#fcd34d" font-weight="700">Firebase</text><text x="1079" y="596" fill="#94a3b8" font-size="12">phone OTP verification</text>
+  </g>
+
+  <!-- API -> external arrows -->
+  <g stroke="#475569" stroke-width="1.4" marker-end="url(#arr)">
+    <line x1="892" y1="363" x2="948" y2="363"/>
+    <line x1="892" y1="435" x2="948" y2="435"/>
+    <line x1="892" y1="430" x2="948" y2="507"/>
+    <line x1="892" y1="470" x2="948" y2="579"/>
+  </g>
+
+  <!-- Map tiles note -->
+  <text x="610" y="252" text-anchor="middle" fill="#475569" font-size="11">map tiles streamed to the browser from OpenStreetMap</text>
+</svg>

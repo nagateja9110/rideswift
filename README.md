@@ -123,6 +123,15 @@ live demand-to-supply ratio, so fares rise where lots of riders are competing fo
 mode). The charge and any refund run in a single locked, all-or-nothing transaction, and every
 change to a ride or payment is written to an audit trail you can inspect from the admin panel.
 
+## Architecture
+
+The browser talks to the API over REST for everything transactional and holds a WebSocket open
+for live updates. The API leans on PostGIS for spatial queries and Redis for the fast driver
+geo-index, and calls out to a few external services (routing, geocoding, payments, OTP) — each
+with a graceful fallback so the app keeps working if one is down.
+
+![System architecture](images/architecture.png)
+
 ## Stack
 
 **Backend** — Java 21, Spring Boot 3.3, Postgres 16 + PostGIS, Redis, Flyway, Spring Security
