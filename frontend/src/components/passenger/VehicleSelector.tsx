@@ -1,6 +1,6 @@
 import { Car, Gem, Users } from 'lucide-react';
 import type { VehicleType } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 const OPTIONS: { type: VehicleType; label: string; desc: string; icon: React.ReactNode }[] = [
   { type: 'ECONOMY', label: 'Economy', desc: 'Affordable everyday rides', icon: <Car className="h-6 w-6" /> },
@@ -46,7 +46,7 @@ export function VehicleSelector({
             </div>
             <div className="shrink-0 text-right">
               {info ? (
-                <span className="font-semibold">${info.fare.toFixed(2)}</span>
+                <span className="font-semibold">{formatCurrency(info.fare)}</span>
               ) : (
                 <span className="text-xs text-muted-foreground">—</span>
               )}
