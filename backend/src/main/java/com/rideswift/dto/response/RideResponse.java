@@ -1,5 +1,6 @@
 package com.rideswift.dto.response;
 
+import com.rideswift.model.PaymentStatus;
 import com.rideswift.model.Ride;
 import com.rideswift.model.RideStatus;
 import com.rideswift.model.VehicleType;
@@ -28,18 +29,19 @@ public record RideResponse(
         Instant startedAt,
         Instant completedAt,
         String pickupPin,
-        Instant scheduledAt
+        Instant scheduledAt,
+        PaymentStatus paymentStatus
 ) {
     /** Default view — includes the pickup PIN. Use {@link #from(Ride, boolean)} to hide it. */
     public static RideResponse from(Ride ride) {
-        return from(ride, true);
+        return from(ride, true, null);
     }
 
-    /**
-     * @param includePin pass {@code false} for the driver's view — only the passenger
-     *                   should see the PIN they read out to the driver at pickup.
-     */
     public static RideResponse from(Ride ride, boolean includePin) {
+        return from(ride, includePin, null);
+    }
+
+    public static RideResponse from(Ride ride, boolean includePin, PaymentStatus paymentStatus) {
         Point pickup = ride.getPickupLocation();
         Point dropoff = ride.getDropoffLocation();
         return new RideResponse(
@@ -62,6 +64,7 @@ public record RideResponse(
                 ride.getStartedAt(),
                 ride.getCompletedAt(),
                 includePin ? ride.getPickupPin() : null,
-                ride.getScheduledAt());
+                ride.getScheduledAt(),
+                paymentStatus);
     }
 }

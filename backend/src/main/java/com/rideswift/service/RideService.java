@@ -14,7 +14,10 @@ import com.rideswift.model.RideOffer;
 import com.rideswift.model.RideOfferStatus;
 import com.rideswift.model.RideStatus;
 import com.rideswift.model.User;
+import com.rideswift.model.Payment;
+import com.rideswift.model.PaymentStatus;
 import com.rideswift.repository.DriverRepository;
+import com.rideswift.repository.PaymentRepository;
 import com.rideswift.repository.RideOfferRepository;
 import com.rideswift.repository.RideRepository;
 import com.rideswift.repository.UserRepository;
@@ -30,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +45,7 @@ public class RideService {
     private final UserRepository userRepository;
     private final DriverRepository driverRepository;
     private final RideOfferRepository rideOfferRepository;
+    private final PaymentRepository paymentRepository;
     private final FareService fareService;
     private final MatchingService matchingService;
     private final LocationService locationService;
@@ -53,6 +58,7 @@ public class RideService {
                        UserRepository userRepository,
                        DriverRepository driverRepository,
                        RideOfferRepository rideOfferRepository,
+                       PaymentRepository paymentRepository,
                        FareService fareService,
                        MatchingService matchingService,
                        LocationService locationService,
@@ -63,6 +69,7 @@ public class RideService {
         this.userRepository = userRepository;
         this.driverRepository = driverRepository;
         this.rideOfferRepository = rideOfferRepository;
+        this.paymentRepository = paymentRepository;
         this.fareService = fareService;
         this.matchingService = matchingService;
         this.locationService = locationService;
@@ -350,9 +357,20 @@ public class RideService {
         driverRepository.findByUserId(userId).ifPresent(driver ->
                 rideRepository.findByDriverIdOrderByRequestedAtDesc(driver.getId())
                         .forEach(r -> merged.put(r.getId(), r)));
+
+        // Bulk-fetch payments so we can show payment status per ride (earnings are
+        // only credited once the passenger's Razorpay payment succeeds).
+        Map<UUID, PaymentStatus> paymentStatusByRide = paymentRepository
+                .findByRideIdIn(merged.keySet())
+                .stream()
+                .collect(Collectors.toMap(p -> p.getRide().getId(), Payment::getStatus));
+
         return merged.values().stream()
                 .sorted(Comparator.comparing(Ride::getRequestedAt).reversed())
-                .map(r -> RideResponse.from(r, r.getPassenger().getId().equals(userId)))
+                .map(r -> RideResponse.from(
+                        r,
+                        r.getPassenger().getId().equals(userId),
+                        paymentStatusByRide.get(r.getId())))
                 .toList();
     }
 

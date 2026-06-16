@@ -47,6 +47,7 @@ export interface Ride {
   completedAt: string | null;
   pickupPin: string | null; // 4-digit; only present in the passenger's view
   scheduledAt: string | null; // set for book-for-later rides
+  paymentStatus: PaymentStatus | null;
 }
 
 export interface FareEstimate {

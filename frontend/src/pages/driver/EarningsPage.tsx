@@ -16,7 +16,7 @@ export function EarningsPage() {
   const { data: history = [], isLoading } = useQuery({ queryKey: ['rides', 'history'], queryFn: rideApi.history });
 
   const completed = useMemo(
-    () => history.filter((r) => r.driverId === driver?.id && r.status === 'COMPLETED'),
+    () => history.filter((r) => r.driverId === driver?.id && r.status === 'COMPLETED' && r.paymentStatus === 'SUCCESS'),
     [history, driver]
   );
 
