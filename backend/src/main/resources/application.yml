@@ -87,6 +87,10 @@ resilience4j:
 
 rideswift:
   security:
+    cors:
+      # Allowed CORS/WebSocket origin patterns (comma-separated). "*" for the open demo;
+      # set CORS_ALLOWED_ORIGINS to the real frontend origin(s) in production.
+      allowed-origin-patterns: ${CORS_ALLOWED_ORIGINS:*}
     jwt:
       # Base64-encoded 256-bit secret. OVERRIDE in production via env var.
       secret: ${JWT_SECRET:Y2hhbmdlLW1lLXRoaXMtaXMtYS1kZXYtb25seS1zZWNyZXQta2V5LTEyMzQ1Ng==}

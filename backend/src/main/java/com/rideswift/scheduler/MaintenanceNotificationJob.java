@@ -2,6 +2,7 @@ package com.rideswift.scheduler;
 
 import com.rideswift.model.NotificationType;
 import com.rideswift.repository.DriverRepository;
+import com.rideswift.service.AuthService;
 import com.rideswift.service.NotificationService;
 import java.util.List;
 import java.util.UUID;
@@ -12,9 +13,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * Quartz job that periodically reminds all drivers about vehicle/document
- * maintenance. Dependencies are field-injected because Quartz instantiates the
- * job and Spring Boot's job factory autowires it afterwards.
+ * Quartz job that runs periodic housekeeping: reminds all drivers about
+ * vehicle/document maintenance and purges dead refresh tokens. Dependencies are
+ * field-injected because Quartz instantiates the job and Spring Boot's job
+ * factory autowires it afterwards.
  */
 public class MaintenanceNotificationJob implements Job {
 
@@ -29,11 +31,17 @@ public class MaintenanceNotificationJob implements Job {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private AuthService authService;
+
     @Override
     public void execute(JobExecutionContext context) {
         List<UUID> driverUserIds = driverRepository.findAllDriverUserIds();
         driverUserIds.forEach(userId ->
                 notificationService.create(userId, MESSAGE, NotificationType.EMAIL));
-        log.info("[QUARTZ] Maintenance notification job fired; notified {} driver(s)", driverUserIds.size());
+
+        int purged = authService.purgeStaleRefreshTokens();
+        log.info("[QUARTZ] Maintenance job fired; notified {} driver(s), purged {} stale refresh token(s)",
+                driverUserIds.size(), purged);
     }
 }

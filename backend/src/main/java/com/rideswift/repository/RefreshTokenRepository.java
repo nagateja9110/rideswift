@@ -1,6 +1,7 @@
 package com.rideswift.repository;
 
 import com.rideswift.model.RefreshToken;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +16,12 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
     @Modifying
     @Query("UPDATE RefreshToken t SET t.revoked = true WHERE t.user.id = :userId AND t.revoked = false")
     int revokeAllForUser(@Param("userId") UUID userId);
+
+    /**
+     * Deletes tokens that can never be used again (already revoked, or past expiry),
+     * so the table doesn't grow unbounded as tokens rotate. Run periodically.
+     */
+    @Modifying
+    @Query("DELETE FROM RefreshToken t WHERE t.revoked = true OR t.expiresAt < :now")
+    int deleteRevokedOrExpired(@Param("now") Instant now);
 }

@@ -200,6 +200,17 @@ public class AuthService {
         });
     }
 
+    /**
+     * Removes refresh tokens that are revoked or past expiry. Called on a schedule so the
+     * table doesn't accumulate dead rows as tokens rotate on every refresh/logout.
+     *
+     * @return the number of rows deleted
+     */
+    @Transactional
+    public int purgeStaleRefreshTokens() {
+        return refreshTokenRepository.deleteRevokedOrExpired(Instant.now());
+    }
+
     private AuthResponse issueTokens(User user) {
         String accessToken = jwtService.generateAccessToken(user);
         String rawRefresh = jwtService.generateRefreshTokenValue();

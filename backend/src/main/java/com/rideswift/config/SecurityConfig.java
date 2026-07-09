@@ -33,6 +33,11 @@ public class SecurityConfig {
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
 
+    // Allowed CORS origin *patterns*. Defaults to "*" for the open demo; lock down in
+    // production by setting CORS_ALLOWED_ORIGINS to the real frontend origin(s).
+    @org.springframework.beans.factory.annotation.Value("${rideswift.security.cors.allowed-origin-patterns:*}")
+    private List<String> allowedOriginPatterns;
+
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           RestAuthenticationEntryPoint authenticationEntryPoint,
                           RestAccessDeniedHandler accessDeniedHandler) {
@@ -105,7 +110,7 @@ public class SecurityConfig {
         // caller's origin and emit Access-Control-Allow-Credentials: true. The literal "*"
         // is rejected by browsers for credentialed requests — which is what sockjs-client
         // sends for the cross-origin WebSocket handshake, so live tracking needs this.
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedOriginPatterns(allowedOriginPatterns);
         configuration.setAllowCredentials(true);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
