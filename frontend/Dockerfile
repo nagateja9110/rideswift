@@ -4,6 +4,11 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci || npm install
 COPY . .
+# Vite inlines VITE_* at build time, so a cross-origin deploy (frontend and backend
+# as separate hosts, e.g. Azure Container Apps) needs this passed as a build arg —
+# it can't be set at container runtime like a normal env var.
+ARG VITE_API_ORIGIN=""
+ENV VITE_API_ORIGIN=$VITE_API_ORIGIN
 RUN npm run build
 
 # ---- Runtime stage ----

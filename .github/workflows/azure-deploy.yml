@@ -1,0 +1,73 @@
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/azure-deploy.yml"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write   # required for OIDC federated login, no stored Azure secret
+  contents: read
+
+env:
+  ACR_NAME: rideswiftacr
+  ACR_LOGIN_SERVER: rideswiftacr.azurecr.io
+  RESOURCE_GROUP: rideswift-rg-in
+  BACKEND_APP: rideswift-api
+  FRONTEND_APP: rideswift-web
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Federated OIDC login — the identity is a User-Assigned Managed Identity
+      # (not an AAD App Registration; this tenant's policy blocks self-service
+      # app registration) with Contributor scoped to just this resource group.
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build & push backend image
+        run: |
+          docker build \
+            -t ${{ env.ACR_LOGIN_SERVER }}/rideswift-api:${{ github.sha }} \
+            -t ${{ env.ACR_LOGIN_SERVER }}/rideswift-api:latest \
+            -f backend/Dockerfile backend
+          docker push ${{ env.ACR_LOGIN_SERVER }}/rideswift-api:${{ github.sha }}
+          docker push ${{ env.ACR_LOGIN_SERVER }}/rideswift-api:latest
+
+      - name: Build & push frontend image
+        run: |
+          docker build \
+            --build-arg VITE_API_ORIGIN=${{ vars.VITE_API_ORIGIN }} \
+            -t ${{ env.ACR_LOGIN_SERVER }}/rideswift-web:${{ github.sha }} \
+            -t ${{ env.ACR_LOGIN_SERVER }}/rideswift-web:latest \
+            -f frontend/Dockerfile frontend
+          docker push ${{ env.ACR_LOGIN_SERVER }}/rideswift-web:${{ github.sha }}
+          docker push ${{ env.ACR_LOGIN_SERVER }}/rideswift-web:latest
+
+      - name: Deploy backend revision
+        run: |
+          az containerapp update \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_LOGIN_SERVER }}/rideswift-api:${{ github.sha }}
+
+      - name: Deploy frontend revision
+        run: |
+          az containerapp update \
+            --name ${{ env.FRONTEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_LOGIN_SERVER }}/rideswift-web:${{ github.sha }}
